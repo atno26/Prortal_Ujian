@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal Ujian - UPTD SMP Negeri 3 Lobalain</title>
+    <!-- Menggunakan Tailwind CSS untuk penggayaan responsif -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Library React dan Babel untuk menjalankan kod React di dalam satu fail HTML -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .touch-feedback:active {
+            transform: scale(0.95);
+        }
+
+        /* Memastikan peralihan yang lancar untuk modal */
+        .modal-enter {
+            opacity: 0;
+        }
+
+        .modal-enter-active {
+            opacity: 1;
+            transition: opacity 300ms;
+        }
+
+        /* Custom scrollbar untuk kebersihan visual */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 text-slate-800">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        /**
+         * Komponen Ikon SVG ringkas untuk menggantikan Lucide Icons.
+         */
+        const Icon = ({ name, size = 24, className = "" }) => {
+            const icons = {
+                graduation: <path d="M22 10v6M2 10l10-5 10 5-10 5zM6 12v5c0 2 2 3 6 3s6-1 6-3v-5" />,
+                clock: <><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></>,
+                user: <><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></>,
+                alert: <><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></>,
+                x: <><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></>,
+                moon: <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />,
+                book: <><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></>,
+                calc: <><rect x="4" y="2" width="16" height="20" rx="2" ry="2" /><line x1="8" y1="6" x2="16" y2="6" /></>,
+                globe: <><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10" /></>,
+                micro: <><path d="M6 18h8M3 22h18M12 18a7 7 0 0 0 7-7c0-4.4-3.6-8-8-8s-8 3.6-8 8" /></>,
+                land: <><line x1="3" y1="21" x2="21" y2="21" /><line x1="3" y1="10" x2="21" y2="10" /><polyline points="3 10 12 3 21 10" /></>,
+                msg: <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />,
+                act: <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />,
+                palette: <><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.9 0 1.6-.7 1.6-1.6 0-.4-.2-.8-.5-1.1" /></>,
+                monitor: <><rect x="2" y="3" width="20" height="14" rx="2" ry="2" /><line x1="8" y1="21" x2="16" y2="21" /></>
+            };
+
+            return (
+                <svg
+                    viewBox="0 0 24 24"
+                    width={size}
+                    height={size}
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className={className}
+                >
+                    {icons[name] || <circle cx="12" cy="12" r="10" />}
+                </svg>
+            );
+        };
+
+        function App() {
+            const [currentTime, setCurrentTime] = useState(new Date());
+            const [modalOpen, setModalOpen] = useState(false);
+            const [selectedSubject, setSelectedSubject] = useState(null);
+            const [selectedGrade, setSelectedGrade] = useState(null);
+
+            useEffect(() => {
+                const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+                return () => clearInterval(timer);
+            }, []);
+
+            const timeString = currentTime.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const dateString = currentTime.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+            const subjects = [
+                { id: 1, name: 'Pendidikan Agama Islam', icon: 'moon', duration: '90 Menit', type: 'Agama', color: 'bg-emerald-600', links: { class7: '', class8: '', class9: '' } },
+                { id: 2, name: 'Pendidikan Agama Kristen', icon: 'book', duration: '90 Menit', type: 'Agama', color: 'bg-indigo-500', links: { class7: '', class8: '', class9: '' } },
+                { id: 3, name: 'Pendidikan Agama Katholik', icon: 'book', duration: '90 Menit', type: 'Agama', color: 'bg-indigo-600', links: { class7: '', class8: '', class9: '' } },
+                { id: 4, name: 'Pendidikan Pancasila', icon: 'land', duration: '90 Menit', type: 'Sosial', color: 'bg-purple-500', links: { class7: '', class8: '', class9: '' } },
+                { id: 5, name: 'Bahasa Indonesia', icon: 'book', duration: '120 Menit', type: 'Bahasa', color: 'bg-red-500', links: { class7: '', class8: '', class9: '' } },
+                { id: 6, name: 'Matematika', icon: 'calc', duration: '120 Menit', type: 'Eksakta', color: 'bg-blue-600', links: { class7: '', class8: '', class9: 'https://script.google.com/macros/s/AKfycbzRbqRz6c-7iFsOJYd1Wez2Owzbn9GEoVNmEg5WY8Sowh4Km6m4o-AYgcsad5INO9c04A/exec' } },
+                { id: 7, name: 'Bahasa Inggris', icon: 'msg', duration: '120 Menit', type: 'Bahasa', color: 'bg-orange-500', links: { class7: '', class8: '', class9: '' } },
+                { id: 8, name: 'IPA', icon: 'micro', duration: '120 Menit', type: 'Eksakta', color: 'bg-green-500', links: { class7: '', class8: '', class9: '' } },
+                { id: 9, name: 'IPS', icon: 'globe', duration: '120 Menit', type: 'Sosial', color: 'bg-teal-500', links: { class7: '', class8: '', class9: '' } },
+                { id: 10, name: 'PJOK', icon: 'act', duration: '90 Menit', type: 'Olahraga', color: 'bg-rose-500', links: { class7: '', class8: '', class9: '' } },
+                { id: 11, name: 'Prakarya', icon: 'palette', duration: '90 Menit', type: 'Keterampilan', color: 'bg-amber-500', links: { class7: '', class8: '', class9: '' } },
+                { id: 12, name: 'Informatika', icon: 'monitor', duration: '90 Menit', type: 'Teknologi', color: 'bg-cyan-600', links: { class7: '', class8: '', class9: '' } },
+            ];
+
+            const handleStartExam = (subject, grade) => {
+                const link = subject.links[`class${grade}`];
+                if (link && link.trim() !== '') {
+                    window.open(link, '_blank');
+                } else {
+                    setSelectedSubject(subject);
+                    setSelectedGrade(grade);
+                    setModalOpen(true);
+                }
+            };
+
+            return (
+                <div className="min-h-screen flex flex-col overflow-x-hidden selection:bg-indigo-100">
+                    <nav className="bg-white shadow-sm border-b border-slate-200 sticky top-0 z-50">
+                        <div className="max-w-7xl mx-auto px-4 flex justify-between h-16 items-center">
+                            <div className="flex items-center gap-3">
+                                <div className="bg-indigo-600 p-2 rounded-lg text-white">
+                                    <Icon name="graduation" size={24} />
+                                </div>
+                                <div>
+                                    <h1 className="font-bold text-base sm:text-lg leading-tight text-slate-900">Portal Ujian</h1>
+                                    <p className="text-[10px] sm:text-xs text-slate-500 font-medium uppercase tracking-tighter">UPTD SMP Negeri 3 Lobalain</p>
+                                </div>
+                            </div>
+                            <div className="hidden md:flex items-center gap-4 border-l pl-4 border-slate-100">
+                                <div className="text-right">
+                                    <div className="font-bold text-indigo-600 text-sm">{timeString}</div>
+                                    <div className="text-[10px] text-slate-500 uppercase font-semibold">{dateString}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </nav>
+
+                    <main className="flex-grow max-w-7xl mx-auto px-4 py-6 w-full pb-24">
+                        <div className="md:hidden flex justify-between items-center bg-white p-3.5 rounded-2xl shadow-sm border border-slate-100 mb-6">
+                            <div className="flex items-center gap-2 text-indigo-600 font-bold text-sm">
+                                <Icon name="clock" size={18} /> {timeString}
+                            </div>
+                            <span className="text-[10px] text-slate-400 font-bold uppercase">{dateString}</span>
+                        </div>
+
+                        <div className="bg-gradient-to-br from-indigo-600 to-blue-700 rounded-3xl p-6 sm:p-8 text-white shadow-xl shadow-indigo-100 mb-8 sm:mb-10 relative overflow-hidden">
+                            <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
+                            <div className="relative z-10">
+                                <h2 className="text-xl sm:text-2xl font-bold mb-3">Selamat Menduduki Ujian!</h2>
+                                <p className="text-indigo-100 text-[11px] sm:text-sm mb-6 leading-relaxed max-w-2xl">
+                                    Pilih subjek mengikut jadual hari ini. Pastikan sambungan internet stabil dan kerjakan soalan dengan penuh integriti.
+                                </p>
+                                <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md px-4 py-2 rounded-xl text-[9px] sm:text-xs border border-white/20 font-medium">
+                                    <Icon name="alert" size={14} /> Jangan tutup tab ini semasa ujian berlangsung.
+                                </div>
+                            </div>
+                        </div>
+
+                        <h3 className="text-slate-900 font-bold text-lg mb-6 flex items-center gap-2">
+                            <span className="w-1.5 h-6 bg-indigo-600 rounded-full"></span>
+                            Senarai Mata Pelajaran
+                        </h3>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                            {subjects.map(subject => (
+                                <div key={subject.id} className="bg-white rounded-[2rem] border border-slate-100 p-5 sm:p-6 flex flex-col shadow-sm hover:shadow-md transition-shadow group">
+                                    <div className="flex items-start gap-4 mb-4">
+                                        <div className={`${subject.color} p-3 rounded-2xl text-white shadow-lg shadow-indigo-50 shrink-0`}>
+                                            <Icon name={subject.icon} size={24} />
+                                        </div>
+                                        <div className="flex-grow min-w-0">
+                                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block mb-0.5">{subject.type}</span>
+                                            <h4 className="font-bold text-base sm:text-lg text-slate-800 leading-tight group-hover:text-indigo-600 transition-colors truncate">{subject.name}</h4>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-slate-50 p-2 rounded-xl border border-slate-100 text-[10px] sm:text-xs text-slate-500 font-medium flex items-center gap-2 mb-5">
+                                        <Icon name="clock" size={14} className="text-slate-400" /> Tempoh: {subject.duration}
+                                    </div>
+
+                                    <div className="mt-auto pt-4 border-t border-slate-100">
+                                        <p className="text-[9px] font-bold text-slate-400 text-center uppercase mb-3 tracking-widest">Pilih Kelas</p>
+
+                                        {/* PERBAIKAN: Menggunakan Grid 3 kolom yang tetap di mobile */}
+                                        <div className="grid grid-cols-3 gap-2">
+                                            {[7, 8, 9].map(grade => (
+                                                <button
+                                                    key={grade}
+                                                    onClick={() => handleStartExam(subject, grade)}
+                                                    className="bg-indigo-50 text-indigo-700 border border-indigo-100 py-3 rounded-xl font-bold text-[11px] sm:text-xs touch-feedback transition-all hover:bg-indigo-600 hover:text-white flex items-center justify-center whitespace-nowrap"
+                                                >
+                                                    Kls {grade}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </main>
+
+                    <footer className="bg-white border-t border-slate-200 py-8 mt-auto">
+                        <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-6">
+                            <div className="text-center md:text-left">
+                                <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-tight">&copy; 2026 UPTD SMP Negeri 3 Lobalain</p>
+                                <p className="text-[9px] text-slate-400 mt-1 font-bold uppercase tracking-[0.2em] opacity-80">Dev by NYM</p>
+                            </div>
+                            <a
+                                href="https://wa.me/6282359562076"
+                                target="_blank"
+                                className="flex items-center gap-2 text-[10px] text-emerald-700 bg-emerald-50 px-5 py-3 rounded-2xl border border-emerald-200 font-bold touch-feedback hover:bg-emerald-100 transition-colors"
+                            >
+                                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" /></svg>
+                                Bantuan
+                            </a>
+                        </div>
+                    </footer>
+
+                    {modalOpen && (
+                        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm transition-all animate-in fade-in duration-300">
+                            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden transform animate-in zoom-in-95 duration-300">
+                                <div className="p-8 text-center">
+                                    <div className="w-14 h-14 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-5">
+                                        <Icon name="alert" size={28} />
+                                    </div>
+                                    <h3 className="text-lg font-bold text-slate-900 mb-2">Tautan Belum Tersedia</h3>
+                                    <p className="text-xs text-slate-500 mb-8 leading-relaxed">
+                                        Pautan ujian <span className="font-bold text-slate-800">{selectedSubject?.name} Kls {selectedGrade}</span> belum sedia. Sila hubungi guru.
+                                    </p>
+                                    <button
+                                        onClick={() => setModalOpen(false)}
+                                        className="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold touch-feedback hover:bg-slate-800 transition-colors"
+                                    >
+                                        Kembali
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>
