@@ -44,6 +44,21 @@
             background: #cbd5e1;
             border-radius: 10px;
         }
+
+        /* Animasi piringan hitam untuk ikon musik */
+        @keyframes spin-slow {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .animate-spin-slow {
+            animation: spin-slow 4s linear infinite;
+        }
     </style>
 </head>
 
@@ -51,7 +66,7 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect } = React;
+        const { useState, useEffect, useRef } = React;
 
         /**
          * Komponen Ikon SVG ringkas untuk menggantikan Lucide Icons.
@@ -72,7 +87,8 @@
                 msg: <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />,
                 act: <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />,
                 palette: <><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.9 0 1.6-.7 1.6-1.6 0-.4-.2-.8-.5-1.1" /></>,
-                monitor: <><rect x="2" y="3" width="20" height="14" rx="2" ry="2" /><line x1="8" y1="21" x2="16" y2="21" /></>
+                monitor: <><rect x="2" y="3" width="20" height="14" rx="2" ry="2" /><line x1="8" y1="21" x2="16" y2="21" /></>,
+                music: <><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></>
             };
 
             return (
@@ -97,6 +113,34 @@
             const [modalOpen, setModalOpen] = useState(false);
             const [selectedSubject, setSelectedSubject] = useState(null);
             const [selectedGrade, setSelectedGrade] = useState(null);
+
+            // State dan Ref untuk Musik
+            const [isMusicPlaying, setIsMusicPlaying] = useState(false);
+            const audioRef = useRef(null);
+
+            // Trik Autoplay: Putar musik saat pengguna pertama kali menyentuh layar
+            useEffect(() => {
+                const playAudioOnFirstInteraction = () => {
+                    if (audioRef.current && audioRef.current.paused) {
+                        audioRef.current.play().then(() => {
+                            setIsMusicPlaying(true);
+                        }).catch(error => console.log("Autoplay ditahan browser:", error));
+
+                        // Hapus deteksi setelah musik berhasil berputar agar tidak membebani memori
+                        document.removeEventListener('click', playAudioOnFirstInteraction);
+                        document.removeEventListener('touchstart', playAudioOnFirstInteraction);
+                    }
+                };
+
+                // Pasang pendeteksi klik dan sentuhan (touch) di seluruh dokumen
+                document.addEventListener('click', playAudioOnFirstInteraction);
+                document.addEventListener('touchstart', playAudioOnFirstInteraction, { passive: true });
+
+                return () => {
+                    document.removeEventListener('click', playAudioOnFirstInteraction);
+                    document.removeEventListener('touchstart', playAudioOnFirstInteraction);
+                };
+            }, []);
 
             useEffect(() => {
                 const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -132,8 +176,38 @@
                 }
             };
 
+            const toggleMusic = () => {
+                if (audioRef.current) {
+                    if (isMusicPlaying) {
+                        audioRef.current.pause();
+                    } else {
+                        audioRef.current.play().catch(error => console.log("Gagal memutar audio:", error));
+                    }
+                    setIsMusicPlaying(!isMusicPlaying);
+                }
+            };
+
             return (
                 <div className="min-h-screen flex flex-col overflow-x-hidden selection:bg-indigo-100">
+
+                    {/* Audio Player (Tersembunyi) ditambahkan autoplay dan playsInline */}
+                    <audio ref={audioRef} loop autoPlay playsInline>
+                        {/* Ganti atribut src di bawah ini dengan tautan/URL file musik (MP3) Anda */}
+                        <source src="Queen - We Are The Champions [Lyrics] (mp3cut.net).mp3" type="audio/mpeg" />
+                        Browser Anda tidak mendukung elemen audio.
+                    </audio>
+
+                    {/* Tombol Musik Melayang (Floating Music Button) diletakkan di TENGAH KIRI */}
+                    <button
+                        onClick={toggleMusic}
+                        className={`fixed top-1/2 -translate-y-1/2 left-3 sm:left-6 z-[70] p-3 sm:p-3.5 rounded-full shadow-xl backdrop-blur-md transition-all duration-300 touch-feedback border border-white/20 ${isMusicPlaying ? 'bg-indigo-600 text-white shadow-indigo-300/50' : 'bg-slate-800/80 text-white hover:bg-slate-700'}`}
+                        aria-label="Toggle Music"
+                    >
+                        <div className={isMusicPlaying ? 'animate-spin-slow' : ''}>
+                            <Icon name="music" size={22} className="sm:w-6 sm:h-6" />
+                        </div>
+                    </button>
+
                     <nav className="bg-white shadow-sm border-b border-slate-200 sticky top-0 z-50">
                         <div className="max-w-7xl mx-auto px-4 flex justify-between h-16 items-center">
                             <div className="flex items-center gap-3">
@@ -180,33 +254,35 @@
                             Senarai Mata Pelajaran
                         </h3>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                        {/* Layout 3 Kolom di HP: Elemen disusun vertikal agar rapi dan teks tidak berantakan */}
+                        <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-4">
                             {subjects.map(subject => (
-                                <div key={subject.id} className="bg-white rounded-[2rem] border border-slate-100 p-5 sm:p-6 flex flex-col shadow-sm hover:shadow-md transition-shadow group">
-                                    <div className="flex items-start gap-4 mb-4">
-                                        <div className={`${subject.color} p-3 rounded-2xl text-white shadow-lg shadow-indigo-50 shrink-0`}>
-                                            <Icon name={subject.icon} size={24} />
+                                <div key={subject.id} className="bg-white rounded-xl border border-slate-200 p-2 sm:p-3 flex flex-col shadow-sm hover:shadow-md transition-shadow group">
+                                    {/* Bagian Atas: Ikon dan Teks ditengah agar muat di lebar layar HP */}
+                                    <div className="flex flex-col items-center text-center mb-2 mt-1">
+                                        <div className={`${subject.color} p-1.5 sm:p-2 rounded-lg text-white shadow-sm mb-1.5 sm:mb-2`}>
+                                            <Icon name={subject.icon} size={16} className="sm:w-5 sm:h-5" />
                                         </div>
-                                        <div className="flex-grow min-w-0">
-                                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block mb-0.5">{subject.type}</span>
-                                            <h4 className="font-bold text-base sm:text-lg text-slate-800 leading-tight group-hover:text-indigo-600 transition-colors truncate">{subject.name}</h4>
-                                        </div>
+                                        <span className="text-[7px] sm:text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-0.5 block">{subject.type}</span>
+                                        <h4 className="font-bold text-[9px] sm:text-[12px] text-slate-800 leading-tight group-hover:text-indigo-600 transition-colors h-[28px] sm:h-[36px] flex items-center justify-center overflow-hidden">
+                                            {subject.name}
+                                        </h4>
                                     </div>
 
-                                    <div className="bg-slate-50 p-2 rounded-xl border border-slate-100 text-[10px] sm:text-xs text-slate-500 font-medium flex items-center gap-2 mb-5">
-                                        <Icon name="clock" size={14} className="text-slate-400" /> Tempoh: {subject.duration}
+                                    {/* Durasi */}
+                                    <div className="bg-slate-50 py-1 px-0.5 rounded-md border border-slate-100 text-[7px] sm:text-[10px] text-slate-500 font-medium flex items-center justify-center gap-1 mb-2">
+                                        <Icon name="clock" size={10} className="text-slate-400 sm:w-3 sm:h-3" /> {subject.duration}
                                     </div>
 
-                                    <div className="mt-auto pt-4 border-t border-slate-100">
-                                        <p className="text-[9px] font-bold text-slate-400 text-center uppercase mb-3 tracking-widest">Pilih Kelas</p>
-
-                                        {/* PERBAIKAN: Menggunakan Grid 3 kolom yang tetap di mobile */}
-                                        <div className="grid grid-cols-3 gap-2">
+                                    {/* Tombol Kelas */}
+                                    <div className="mt-auto pt-2 border-t border-slate-100">
+                                        <p className="text-[7px] sm:text-[9px] font-bold text-slate-400 text-center uppercase mb-1.5 tracking-widest">Pilih Kelas</p>
+                                        <div className="grid grid-cols-3 gap-1 sm:gap-1.5">
                                             {[7, 8, 9].map(grade => (
                                                 <button
                                                     key={grade}
                                                     onClick={() => handleStartExam(subject, grade)}
-                                                    className="bg-indigo-50 text-indigo-700 border border-indigo-100 py-3 rounded-xl font-bold text-[11px] sm:text-xs touch-feedback transition-all hover:bg-indigo-600 hover:text-white flex items-center justify-center whitespace-nowrap"
+                                                    className="bg-indigo-50 text-indigo-700 border border-indigo-100 py-1.5 px-0 rounded-md font-bold text-[8px] sm:text-[11px] touch-feedback transition-all hover:bg-indigo-600 hover:text-white flex items-center justify-center tracking-tighter whitespace-nowrap"
                                                 >
                                                     Kls {grade}
                                                 </button>
